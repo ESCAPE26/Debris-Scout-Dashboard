@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debris Scout AI — Orbital Safety Prototype</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div class="page-wrapper">
+  
+  <!-- SECTION 1: Mission Introduction -->
+  <header class="site-header">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="15" stroke="var(--ocean-slate)" stroke-width="1.5" stroke-dasharray="2 4"/>
+        <path d="M18 3C26.284 3 33 9.715 33 18" stroke="var(--soft-teal)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="28" cy="8" r="2.5" fill="var(--warm-amber)"/>
+        <circle cx="18" cy="18" r="4" fill="var(--bio-cyan)"/>
+      </svg>
+      <div class="mission-intro">
+        <h1>Debris Scout</h1>
+        <p><b>Indian Space Research Orgonisation</b></p>
+      </div>
+    </div>
+    <div class="disclaimer-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span>AI MODE: <b>SIMULATION</b></span>
+    </div>
+  </header>
+
+  <!-- SECTION 7 (Integrated): Mission Control Timeline -->
+  <section class="pipeline-timeline" id="pipeline-tracker">
+    <div class="pipeline-stage active" id="stage-sense"><div class="indicator"></div>SENSE</div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage" id="stage-detect"><div class="indicator"></div>DETECT</div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage" id="stage-track"><div class="indicator"></div>TRACK</div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage" id="stage-predict"><div class="indicator"></div>PREDICT</div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage" id="stage-assess"><div class="indicator"></div>ASSESS RISK</div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage" id="stage-protect"><div class="indicator"></div>PROTECT</div>
+  </section>
+
+  <!-- Core Dashboard Grid -->
+  <main class="dashboard-grid">
+    
+    <!-- SECTION 2: Live Orbital Situation -->
+    <section class="panel orbit-panel">
+      <div class="panel-head">
+        <h2>Live Orbital Environment</h2>
+        <div class="meta" id="scenario-name">Scenario: Safe Pass</div>
+      </div>
+      <div id="orbit-canvas-holder">
+        <div class="orbit-overlay">
+          <div class="time-hud">T+<span id="sim-clock">000.0</span>s &nbsp;|&nbsp; TICK <span id="sim-tick">0</span></div>
+          <div class="orbit-legend">
+            <div class="legend-item"><div class="legend-color" style="background:var(--bio-cyan)"></div>Protected Spacecraft</div>
+            <div class="legend-item"><div class="legend-color" style="background:var(--ocean-slate); border:1px solid var(--text-secondary)"></div>Sentinel Node</div>
+            <div class="legend-item"><div class="legend-color" style="background:var(--warm-amber)"></div>Tracked Contact</div>
+            <div class="legend-item"><div class="legend-color" style="background:var(--crimson)"></div>Critical Threat</div>
+            <div class="legend-item"><div class="legend-color" style="background:var(--muted-seafoam)"></div>Predicted Trajectory</div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-controls">
+        <button class="btn btn-primary" id="btn-start">Start Simulation</button>
+        <button class="btn" id="btn-pause">Pause</button>
+        <button class="btn" id="btn-reset">Reset</button>
+        <div style="flex:1"></div>
+        <button class="btn" id="btn-detect" hidden></button>
+        <button class="btn" id="btn-track" hidden></button>
+        <button class="btn" id="btn-predict" hidden></button>
+        <!-- useless buttons -->
+        <select class="btn" id="scenario-select">
+          <option value="safe">Scene 1: Safe pass</option>
+          <option value="monitor">Scene 2: Monitoring</option>
+          <option value="conjunction">Scene 3: Potential conjunction</option>
+          <option value="critical">Scene 4: Critical threat</option>
+          <option value="false_detection">Scene 5: False detection</option>
+          <option value="noise">Scene 6: Sensor noise</option>
+          <option value="avoidance">Scene 7: Avoidance demo</option>
+          <option value="demo">DEMO: Full walkthrough</option>
+        </select>
+        <button class="btn" id="btn-reset-cam" title="Recenter Camera">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- SECTION 3: Detection & Tracking -->
+    <section class="panel tracks-panel">
+      <div class="panel-head">
+        <h2>Mission Tracks</h2>
+        <div class="meta" id="obj-count">0 Active</div>
+      </div>
+      <div class="panel-body" style="padding: 0; overflow-y: auto;">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Conf</th><th>Range</th><th>Velocity</th><th>Risk</th></tr></thead>
+          <tbody id="obj-table-body">
+            <tr><td colspan="5">
+              <div class="empty-state">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <div class="title">Sky Clear</div>
+                <div class="desc">No active contacts in the current simulation window. Start simulation to begin monitoring.</div>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 4: Trajectory Prediction -->
+    <section class="panel predict-panel">
+      <div class="panel-head">
+        <h2>Trajectory Analysis</h2>
+        <div class="meta tech-text" id="sel-id">TRACK NOT SELECTED</div>
+      </div>
+      <div class="panel-body">
+        <div class="horizon-tabs">
+          <button class="htab" data-h="10">T+10s</button>
+          <button class="htab active" data-h="30">T+30s</button>
+          <button class="htab" data-h="60">T+60s</button>
+          <button class="htab" data-h="300">T+5m</button>
+        </div>
+        <div class="canvas-container">
+          <canvas id="traj-canvas"></canvas>
+        </div>
+        <div style="font-family: var(--font-tech); font-size: 10px; color: var(--text-muted); margin-top: 8px;">
+          Model: Simplified Relative-Motion Physics + Simulated ML Residual
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: Risk Assessment -->
+    <section class="panel risk-panel">
+      <div class="panel-head">
+        <h2>Threat Assessment</h2>
+      </div>
+      <div class="panel-body">
+        <div class="risk-header GREEN" id="risk-banner">
+          <div class="risk-level-title" id="risk-title">CURRENT ASSESSMENT: LOW</div>
+          <div class="risk-interpretation" id="risk-desc">No active tracks selected. Awaiting contacts.</div>
+        </div>
+        
+        <div class="metric-grid">
+          <div class="metric-group">
+            <span class="metric-label">Prototype Risk Score</span>
+            <span class="metric-value tech" id="risk-score">0 / 100</span>
+          </div>
+          <div class="metric-group">
+            <span class="metric-label">Time to Closest Approach</span>
+            <span class="metric-value tech" id="risk-tca">—</span>
+          </div>
+          <div class="metric-group">
+            <span class="metric-label">Min. Separation</span>
+            <span class="metric-value tech" id="risk-missdist">—</span>
+          </div>
+          <div class="metric-group">
+            <span class="metric-label">Relative Velocity</span>
+            <span class="metric-value tech" id="risk-relvel">—</span>
+          </div>
+        </div>
+        
+        <div class="risk-meter">
+          <div class="risk-fill" id="risk-fill"></div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+          <button class="btn btn-action" id="btn-maneuver" disabled>Simulate Clearance Maneuver</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Lower Section -->
+  <div class="bottom-grid">
+    
+    <!-- Mission Timeline / Alerts -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Mission Event Log</h2>
+        <button class="btn" id="btn-clear-alerts" style="padding: 4px 8px; font-size: 10px;">Clear</button>
+      </div>
+      <div class="log-list" id="log-body">
+        <div class="empty-state" style="padding: 20px;">
+          <div class="title">NO ACTIVE ALERTS</div>
+          <div class="desc">Nothing currently requires operator attention. Enjoy the quiet while it lasts.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: Sustainability -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Sustainability Metrics</h2>
+      </div>
+      <div class="sustain-grid">
+        <div class="sustain-card">
+          <span class="sustain-val" id="s-tracked">0</span>
+          <span class="sustain-lbl">Objects Tracked</span>
+        </div>
+        <div class="sustain-card">
+          <span class="sustain-val" id="s-threats">0</span>
+          <span class="sustain-lbl">Threats Evaluated</span>
+        </div>
+        <div class="sustain-card">
+          <span class="sustain-val" id="s-prevented">0</span>
+          <span class="sustain-lbl">Conjunctions Cleared</span>
+        </div>
+        <div class="sustain-card">
+          <span class="sustain-val" id="s-maneuvers">0</span>
+          <span class="sustain-lbl">Maneuvers Simulated</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SECTION 9: Team Info -->
+  <footer class="team-section">
+    <h2>Built By The Team</h2>
+    <div class="team-grid">
+      <div class="team-member">
+        <div class="avatar-placeholder">ENG</div>
+        <div class="team-role">Systems / Simulation</div>
+        <div class="team-name">Parth Sathwara</div>
+      </div>
+      <div class="team-member">
+        <div class="avatar-placeholder">AI</div>
+        <div class="team-role">AI / Perception</div>
+        <div class="team-name">Suyash Naik</div>
+      </div>
+      <div class="team-member">
+        <div class="avatar-placeholder">UI</div>
+        <div class="team-role">Interface / Integration</div>
+        <div class="team-name">Sahaj Karn</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; font-family: var(--font-tech); font-size: 22px; color: var(--text-muted);">
+      A DOOMSDAY prototype
+    </div>
+  </footer>
+
+</div>
+
+<!-- SECTION 6: Simulated Avoidance Modal -->
+<div class="modal-overlay" id="maneuver-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Hypothetical Avoidance Maneuver</h3>
+      <button class="btn" id="modal-close">Close ✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+        This candidate maneuver is generated by a simplified in-browser solver to demonstrate maneuver planning. It is not flight-certified and does not output hardware thruster commands.
+      </p>
+      
+      <div class="metric-grid">
+        <div class="metric-group">
+          <span class="metric-label">Target Threat</span>
+          <span class="metric-value tech" id="mv-target">—</span>
+        </div>
+        <div class="metric-group">
+          <span class="metric-label">Candidate Radial Δv</span>
+          <span class="metric-value tech" id="mv-dv" style="color: var(--bio-cyan);">—</span>
+        </div>
+      </div>
+
+      <div class="maneuver-compare">
+        <div class="compare-card before">
+          <div class="compare-title">Current Trajectory</div>
+          <div class="metric-value tech" id="mv-before-risk">—</div>
+          <div class="metric-label" style="margin-top:8px">Miss Distance: <span id="mv-before-miss" style="color:var(--text-primary)">—</span></div>
+        </div>
+        
+        <div class="arrow-icon">→</div>
+        
+        <div class="compare-card after">
+          <div class="compare-title">Simulated Clearance</div>
+          <div class="metric-value tech" id="mv-after-risk">—</div>
+          <div class="metric-label" style="margin-top:8px">Miss Distance: <span id="mv-after-miss" style="color:var(--text-primary)">—</span></div>
+        </div>
+      </div>
+      
+      <div class="resolution-text">
+        Estimated risk reduction: <span id="mv-reduction" style="font-size: 16px; color: var(--muted-seafoam);">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
